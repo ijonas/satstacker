@@ -2,6 +2,8 @@
 
 Python script to automate the daily purchase of Bitcoin using the Kraken exchange. Typically run from a Raspberry Pi using a cron job.
 
+![My Satstacker: Tinipy](https://github.com/ijonas/satstacker/blob/main/images/satstacker.jpg?raw=true)
+
 # Introduction
 
 The Bitcoin community is full of advice around dollar-cost-averaging (DCA) and "stacking sats". So I wrote this script to help me (and you) DCA daily.
