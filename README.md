@@ -134,3 +134,6 @@ Please be warned: I will never ask you for your BTC private keys or seed phrase.
 
 Don't share your Satstacker `.env` file with anyone either (particularly when asking for help/support), it contains your Kraken API keys.
 
+# Thanks
+
+A special thanks goes out to Alexander Leishman [who's blog post](https://www.alexleishman.com/posts/hmac-in-ruby) showed me how to do all the message-signing-magic.
