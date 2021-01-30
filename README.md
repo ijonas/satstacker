@@ -23,7 +23,7 @@ If the price rises to $30,000 then your budget needs to be $900 per month, or yo
 
 This script can run from anywhere there's a *NIX environment (MacOS, cloud-based Linux, or WSL). It'll probably run on Windows too. However, finding a good use for a Raspberry Pi you have lying around the house increases your Geek-kudos tremendously.
 
-So I'm assuming you've got a Raspberry Pi ready, installed with a recent Raspberry Pi OS. You've got access to the command-line and your Pi has an internet connection (wifi or wired doesn't matter).
+So I'm assuming you've [got a Raspberry Pi ready](https://github.com/ijonas/satstacker#getting-a-raspberry-pi-ready), installed with a recent Raspberry Pi OS. You've got access to the command-line and your Pi has an internet connection (wifi or wired doesn't matter).
 
 Install git
 
