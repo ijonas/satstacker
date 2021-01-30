@@ -7,8 +7,7 @@ Python script to automate the daily purchase of Bitcoin using the Kraken exchang
 # Introduction
 
 The Bitcoin community is full of advice around dollar-cost-averaging (DCA) and "stacking sats". So I wrote this script to help me (and you) DCA daily.
-I run it on tiny $10 [Raspberry Pi Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) computer. Every day the Pi Zero executes the script at 5am and by the time I wake up at 6am I've got a few
-more sats than the day before. *A nice way to start the day.*
+I run it on a tiny $10 [Raspberry Pi Zero W](https://www.raspberrypi.org/products/raspberry-pi-zero-w/) computer. Every day the Pi Zero executes the script at 5am and by the time I wake up at 6am I've got a few more sats than the day before. *A nice way to start the day.*
 
 Every month on payday I wire some fiat funds across to Kraken and leave them as fiat sitting in my Kraken account. Throughout the month the script
 connects and takes a chunk of fiat money and places a *limit order* using the last bid price on the Kraken exchange.
@@ -59,7 +58,7 @@ At this point you should be able to execute the script
 
     python3 invest.py
 
-It will either print a "success" message or tell you have insufficient funds in your Kraken account.
+It will either print a "success" message or complain that you have insufficient funds in your Kraken account.
 
 # Running the script every couple of days
 
@@ -83,9 +82,11 @@ Confirm that the line has been added to the cron schedule:
 
     crontab -l
 
+*That's It. Untold riches lie ahead*
+
 # Script support for other tokens like ETH, etc.
 
-You can use the same script to buy ETH etc. by changing the token pair in the .env file. The log message saying you've "stacked sats" would be a confusing 😁. You'd also need to change the `minimum_vol` constant near the top of the script to reflect the [minimum volume for ETH](https://support.kraken.com/hc/en-us/articles/205893708-Minimum-order-size-volume-for-trading) or whatever.
+You can use the same script to buy ETH etc. by changing the token pair in the .env file.  You'd also need to change the `minimum_vol` constant near the top of the script to reflect the [minimum volume for ETH](https://support.kraken.com/hc/en-us/articles/205893708-Minimum-order-size-volume-for-trading) or whatever. The log message saying you've "stacked sats" would be a confusing 😁.
 
 # Script support for other exchanges
 
@@ -137,3 +138,17 @@ Don't share your Satstacker `.env` file with anyone either (particularly when as
 # Thanks
 
 A special thanks goes out to Alexander Leishman [who's blog post](https://www.alexleishman.com/posts/hmac-in-ruby) showed me how to do all the message-signing-magic.
+
+# Getting a Raspberry Pi ready
+
+Getting setup with a Raspberry Pi Zero W isn't difficult. You don't need any programming skills, but you will need to use a text editor and enter some basic commands at the command line.
+
+Materials you need:
+* [Raspberry Pi Zero W](https://shop.pimoroni.com/products/raspberry-pi-zero-w)
+* [16Gb Flash Card](https://shop.pimoroni.com/products/16gb-class-10-microsd-card)
+* [Pi Zero Case](https://shop.pimoroni.com/products/official-raspberry-pi-zero-case)
+* [Micro USB Power Supply](https://shop.pimoroni.com/products/raspberry-pi-universal-power-supply) - or use one from an old cellphone.
+
+Download the [Raspberry Pi OS Lite - Operating System](https://www.raspberrypi.org/software/operating-systems/#raspberry-pi-os-32-bit).
+
+Now follow the excellent guide in [this Youtube video](https://www.youtube.com/watch?v=3VO4vGlQ1pg&ab_channel=Refactored).
