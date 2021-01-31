@@ -16,6 +16,7 @@ api_key = os.environ.get("API_KEY")
 api_secret = os.environ.get("API_SECRET")
 token_pair = os.environ.get("TOKEN_PAIR")
 currency = os.environ.get("CURRENCY")
+transaction_log_file = os.environ.get("TRANSACTION_LOG")
 live_purchase_mode = os.environ.get("LIVE_PURCHASE_MODE")=="true" or False
 
 api_endpoint = "https://api.kraken.com"
@@ -25,7 +26,7 @@ minimum_vol =  float(os.environ.get("MINIMUM_BUY_VOLUME"))
 satoshis_in_a_btc = 100000000
 
 def append_to_transaction_csv(rows, row):
-  with open('satstacker-transactions.csv', 'w', newline='') as csvfile:
+  with open(transaction_log_file, 'w', newline='') as csvfile:
     csvwriter = csv.writer(csvfile, delimiter=',')
     for oldrow in rows:
       csvwriter.writerow(oldrow)  
@@ -34,7 +35,7 @@ def append_to_transaction_csv(rows, row):
 def load_previous_transactions():
   txns = []
   try:
-    with open('satstacker-transactions.csv', newline='') as csvfile:
+    with open(transaction_log_file, newline='') as csvfile:
       txnreader = csv.reader(csvfile, delimiter=',')
       for row in txnreader:
         txns += [row]
