@@ -156,8 +156,7 @@ def buy(token_pair, purchase_vol, price, balance_remaining, next_purchase_date):
     record_txn(token_pair, purchase_vol, price, balance_remaining, next_purchase_date)
 
 def invest(token_pair):
-  # today = date.today()
-  today = datetime(2021, 3, 1)
+  today = date.today()
 
   latest_price = fetch_latest_price(token_pair)  
   balance = current_balance(currency)
