@@ -49,7 +49,7 @@ def load_previous_transactions():
 
 previous_transactions = load_previous_transactions()
 next_txn_date = date.today()
-if len(previous_transactions) > 2: #incl header
+if len(previous_transactions) > 1: #incl header
   last_txn = previous_transactions[-1]
   next_txn_date = datetime.fromisoformat(last_txn[-1])
 
@@ -132,7 +132,7 @@ def no_days_till_end_of_month(a_date):
 def record_txn(token_pair, purchase_vol, price, balance_remaining, next_purchase_date):
   sats = purchase_vol * satoshis_in_a_btc
   spending = price * purchase_vol
-  print("Stacking {0:.2f} satoshis via {1} at {2:.2f} spending {3:.2f}".format(sats, token_pair, price, spending))
+  print("At today's price {0:.2f}, purchasing {1:.0f} sats will cost {2:.2f}. Balance remaining {3:.2f}".format(price, sats,  spending, balance_remaining))
   now = datetime.today().isoformat()
   append_to_transaction_csv(previous_transactions, [now, token_pair, purchase_vol, price, spending, balance_remaining, next_purchase_date])
 
@@ -184,13 +184,12 @@ def invest(token_pair):
       vol = minimum_vol
       fiat_to_spend = vol * latest_price
       balance_remaining = (balance - fiat_to_spend)
-      print("At today's price {0:.2f}, purchasing {1:.3f} {2} will cost {3:.2f}. Balance remaining {4:.2f}".format(latest_price, vol, token_pair, fiat_to_spend, balance_remaining))
       no_purchases_possible =  balance_remaining // fiat_to_spend
       if no_purchases_possible > 0:
         purchase_interval = round(no_days_left / no_purchases_possible)
-        print("The {0:.0f} remaining purchases, every {1} days, assuming no price change, are as follows: ".format(no_purchases_possible, purchase_interval))
         next_purchase_date = today + timedelta(days=purchase_interval)
         buy(token_pair, vol, latest_price, balance_remaining, next_purchase_date)
+        print("The {0:.0f} remaining purchases, every {1} days, assuming no price change, are as follows: ".format(no_purchases_possible, purchase_interval))
         for n in range(int(no_purchases_possible)):
           balance_remaining = balance_remaining - fiat_to_spend
           skip_days = (n+1)*purchase_interval
