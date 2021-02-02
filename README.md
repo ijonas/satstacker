@@ -74,9 +74,9 @@ My Pi says:
 
 Run the following commands to setup a schedule that runs the script every 3 days at 5am:
 
-    echo "* 5 */3 * * /usr/bin/python3 /home/pi/satstacker/invest.py >/dev/null 2>&1" | crontab -
+    echo "0 5 * * * /usr/bin/python3 /home/pi/satstacker/invest.py >/dev/null 2>&1" | crontab -
 
-In the line above the first digit-`5` refers to 5am and the `*/3` means "every 3 days". To learn more about cron schedules play around with [crontab-generator](https://crontab-generator.org/).
+In the line above the first digit-'0' refers to 0-minutes past the hour, the first digit-`5` refers to 5am. To learn more about cron schedules play around with [crontab-generator](https://crontab-generator.org/).
 
 Confirm that the line has been added to the cron schedule:
 
