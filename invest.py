@@ -1,4 +1,5 @@
 import time
+from datetime import date, datetime, timedelta
 import base64
 import requests
 import urllib.parse
@@ -6,6 +7,7 @@ import hashlib
 import hmac
 import sys
 import os
+import csv
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,13 +15,43 @@ load_dotenv()
 api_key = os.environ.get("API_KEY")
 api_secret = os.environ.get("API_SECRET")
 token_pair = os.environ.get("TOKEN_PAIR")
-fiat_to_spend = float(os.environ.get("FIAT_TO_SPEND"))
+currency = os.environ.get("CURRENCY")
+transaction_log_file = os.environ.get("TRANSACTION_LOG")
+live_purchase_mode = os.environ.get("LIVE_PURCHASE_MODE")=="true" or False
 
 api_endpoint = "https://api.kraken.com"
 
 # Minimum quantity of BTC one can buy from Kraken - see https://support.kraken.com/hc/en-us/articles/205893708-Minimum-order-size-volume-for-trading
-minimum_vol = 0.001 
+minimum_vol =  float(os.environ.get("MINIMUM_BUY_VOLUME"))
 satoshis_in_a_btc = 100000000
+
+def append_to_transaction_csv(rows, row):
+  with open(transaction_log_file, 'w', newline='') as csvfile:
+    csvwriter = csv.writer(csvfile, delimiter=',')
+    for oldrow in rows:
+      csvwriter.writerow(oldrow)  
+    csvwriter.writerow(row)
+
+def load_previous_transactions():
+  txns = []
+  try:
+    with open(transaction_log_file, newline='') as csvfile:
+      txnreader = csv.reader(csvfile, delimiter=',')
+      for row in txnreader:
+        txns += [row]
+
+  except FileNotFoundError:
+    print("No previous transactions found. Initialising transaction CSV file...")
+    hdr = ['Timestamp', 'Token Pair', 'Volume', 'Price', 'Total Spent', 'Balance Remaining', 'Next Purchase Date']
+    append_to_transaction_csv([], hdr)
+    txns += [hdr]
+  return txns  
+
+previous_transactions = load_previous_transactions()
+next_txn_date = date.today()
+if len(previous_transactions) > 1: #incl header
+  last_txn = previous_transactions[-1]
+  next_txn_date = datetime.fromisoformat(last_txn[-1])
 
 # START: API SECTION 
 # Deals with mechanics of talking to Kraken API incl. signing of requests
@@ -66,7 +98,7 @@ def post_url(url_path, opts={}):
 # START: TRADING SECTION 
 # Fetches the latest price information and figures out how much to buy
 
-def fetch_lastest_price(token_pair):
+def fetch_latest_price(token_pair):
   response = post_url( public_url_path('Ticker'), {"pair": token_pair} )
   price_info = response.json()
   if len(price_info['error'])>0:
@@ -74,37 +106,105 @@ def fetch_lastest_price(token_pair):
   else:
     return float(price_info['result'][token_pair]['b'][0])
 
-def buy(token_pair, fiat_to_spend):
-  price = fetch_lastest_price(token_pair)
-  purchase_vol = fiat_to_spend / price
-  if purchase_vol < minimum_vol:
-    raise RuntimeError("Purchase volume less than minimum allowed.")
-  sats = purchase_vol * satoshis_in_a_btc
-  time.sleep(1) # prevents any collision with the time-based nonce
-  response = post_url( private_url_path("AddOrder"), {
-    "pair": token_pair,
-    "type": "buy",
-    "ordertype": "limit",
-    "price": price,
-    "volume": purchase_vol
-  })
-  txn = response.json()
-  if len(txn['error'])>0:
-    raise RuntimeError(txn['error'][0])
+def current_balance(currency):
+  response = post_url( private_url_path('Balance') )
+  balance_info = response.json()
+  try:
+    return float(balance_info["result"][currency])
+  except KeyError:
+    return 0
+
+def leap_year(a_date):
+  return a_date.year % 100 == 0 and a_date.year % 4 == 0
+
+def no_days_till_end_of_month(a_date):
+  month = a_date.month
+  if month == 4 or month == 6 or month == 9 or month == 11:
+    return 30 - a_date.day 
+  elif month == 2:
+    if leap_year(a_date):
+      return 29 - a_date.day 
+    else:
+      return 28 - a_date.day
   else:
-    print("Stacking {0:.2f} satoshis via {1} at {2:.2f} spending {3:.2f}".format(sats, token_pair, price, fiat_to_spend))
-    return txn
+    return 31 - a_date.day 
+
+def record_txn(token_pair, purchase_vol, price, balance_remaining, next_purchase_date):
+  sats = purchase_vol * satoshis_in_a_btc
+  spending = price * purchase_vol
+  print("At today's price {0:.2f}, purchasing {1:.0f} sats will cost {2:.2f}. Balance remaining {3:.2f}".format(price, sats,  spending, balance_remaining))
+  now = datetime.today().isoformat()
+  append_to_transaction_csv(previous_transactions, [now, token_pair, purchase_vol, price, spending, balance_remaining, next_purchase_date])
+
+def buy(token_pair, purchase_vol, price, balance_remaining, next_purchase_date):
+  time.sleep(1) # prevents any collision with the time-based nonce
+  if live_purchase_mode:
+    response = post_url( private_url_path("AddOrder"), {
+      "pair": token_pair,
+      "type": "buy",
+      "ordertype": "limit",
+      "price": price,
+      "volume": purchase_vol
+    })
+    txn = response.json()
+    if len(txn['error'])>0:
+      raise RuntimeError(txn['error'][0])
+    else:
+      record_txn(token_pair, purchase_vol, price, balance_remaining, next_purchase_date)
+      return txn
+  else:
+    print("TRIALMODE")
+    record_txn(token_pair, purchase_vol, price, balance_remaining, next_purchase_date)
+
+def invest(token_pair):
+  today = date.today()
+
+  latest_price = fetch_latest_price(token_pair)  
+  balance = current_balance(currency)
+
+  print("------------------------------------------------------------------------------")
+  print("Today's date: {0}. Your balance: {1:.2f} {2}".format(today.strftime("%x"), balance, currency))
+  if today.year <= next_txn_date.year and today.month <= next_txn_date.month and today.day < next_txn_date.day:
+    print("Next transaction date {0}, sleeping until then.".format(next_txn_date.strftime("%x")))
+    return
+
+  no_days_left = no_days_till_end_of_month(today)
+  if no_days_left==0:
+    daily_budget = balance
+  else:
+    daily_budget = balance / no_days_left
+  vol = daily_budget / latest_price
+
+  if (vol < minimum_vol):
+    print("Unable to buy daily.")
+    minimum_purchase_cost = minimum_vol * latest_price
+    if minimum_purchase_cost > balance:
+      print("The minimum purchase cost > your balance. Add more fiat to your account.")
+    else:
+      vol = minimum_vol
+      fiat_to_spend = vol * latest_price
+      balance_remaining = (balance - fiat_to_spend)
+      no_purchases_possible =  balance_remaining // fiat_to_spend
+      if no_purchases_possible > 0:
+        purchase_interval = round(no_days_left / no_purchases_possible)
+        next_purchase_date = today + timedelta(days=purchase_interval)
+        buy(token_pair, vol, latest_price, balance_remaining, next_purchase_date)
+        print("The {0:.0f} remaining purchases, every {1} days, assuming no price change, are as follows: ".format(no_purchases_possible, purchase_interval))
+        for n in range(int(no_purchases_possible)):
+          balance_remaining = balance_remaining - fiat_to_spend
+          skip_days = (n+1)*purchase_interval
+          new_date = today + timedelta(days=skip_days)
+          print("{2}. {0} Balance remaining: {1:.2f}".format(new_date.strftime("%x"), balance_remaining, n+1))
+
+  else:
+    print("You can buy daily.")
+    fiat_to_spend = vol * latest_price
+    balance_remaining = (balance - fiat_to_spend)
+    buy(token_pair, vol, latest_price, balance_remaining, today + timedelta(days=1))
 
 # END: TRADING SECTION 
 
-# Common BTC tokens on Kraken
-# Common Name - Kraken Name
-# BTCDAI - XBTDAI
-# BTCGBP - XXBTZGBP
-# BTCUSD - XXBTZUSD
-# BTCEUR - XXBTZEUR
 try:
-  buy(token_pair, fiat_to_spend)
+  invest(token_pair)
 except RuntimeError as err:
   print(err, file=sys.stderr)
-
