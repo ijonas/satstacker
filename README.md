@@ -15,9 +15,11 @@ connects and takes a chunk of fiat money and places a *limit order* using the la
 The script places limit orders rather than market orders to minimise the [transaction costs](https://www.kraken.com/en-gb/features/fee-schedule) from the exchange. This sometimes means that your order can take a while to fill if BTC is rocketing up. From experience though Kraken usually fills the order in under an hour.
 
 Now we all love that BTC is in a bull run. However this poses a little problem for this script depending on your monthly budget. The minimum purchase volume
-for BTC on Kraken is [0.001 BTC](https://support.kraken.com/hc/en-us/articles/205893708-Minimum-order-size-volume-for-trading). So if the current price of BTC is $20,000 (oh how I miss those days) then you'd need to spend $20 per day to buy 0.001 BTC. You would need a monthly budget of 30 days * $20 = $600.
+for BTC on Kraken is [0.0002 BTC](https://support.kraken.com/hc/en-us/articles/205893708-Minimum-order-size-volume-for-trading). So if the current price of BTC is $40,000 (oh how I miss those days) then you'd need to spend $8 per day to buy 0.0002 BTC. You would need a monthly budget of 30 days * $8 = $240.
 
-If the price rises to $30,000 then your budget needs to be $900 per month, or you switch from a daily purchase to buying BTC every 3 days to stay within that $600 budget.
+If the price rises to $80,000 then your budget needs to be $480 per month, or you switch from a daily purchase to buying BTC every 2 days to stay within that $240 budget. Now luckily with v1.1 of this script I've added an auto-balancing ability. If you've got enough fiat balance in your account to buy the minimum value or more for the 30 days of the month then the script will buy daily. For example if you've got $6000 to spend each month, then the script will buy $6000 / 30 days = $200 worth of Bitcoin every day. 
+
+If you don't have funds for the minimum amount every day then the script will figure when you can next afford to buy given today's price. So if the BTC price is $90,000 🚀 and you have a budget of $180 / month, then the script will buy 0.0002 BTC every 3 days.
 
 # Installation on a Raspberry Pi
 
@@ -44,21 +46,34 @@ Edit your .env file to add your Kraken API keys and trading pair information
     API_KEY=...
     API_SECRET=...
 
+    # FOR BTC
+    MINIMUM_BUY_VOLUME=0.0002
+
+    TRANSACTION_LOG=/home/pi/satstacker/satstacker-transactions.csv
+
     # Common BTC Pair Name  - Kraken BTC Pair Name
     # BTCDAI                - XBTDAI
     # BTCGBP                - XXBTZGBP
     # BTCUSD                - XXBTZUSD
     # BTCEUR                - XXBTZEUR
     TOKEN_PAIR=XXBTZGBP
-    FIAT_TO_SPEND=25
+    CURRENCY=ZGBP
+
+    LIVE_PURCHASE_MODE=false
 
 The token pair above shows I'm buying BTC using GBP - XXBTZGBP is the identifier Kraken uses for BTCGBP. Each time the script is called it places an order for £25.
+
+Please make sure MINIMUM_BUY_VOLUME is up to date as Kraken lowered the threshold at the start of 2021.
+Make sure TRANSACTION_LOG file path is accurate. The script now records the transactions in a history CSV file which it also uses to determine when to next buy.
+Adjust your TOKEN_PAIR and CURRENCY to suit your token pairing that you're using to stack sats.
 
 At this point you should be able to execute the script 
 
     python3 invest.py
 
 It will either print a "success" message or complain that you have insufficient funds in your Kraken account.
+
+To switch the script into "live spend money mode" set the environment variable LIVE_PURCHASE_MODE in your .env file to `true`.
 
 # Running the script every couple of days
 
@@ -99,8 +114,7 @@ For a free Kraken account [join here](https://kraken.com).
 This script is pretty basic, but I've got plans to enhance it over time (read: weekends).
 
 1. Telegram notifications
-2. Auto-timing, i.e. set a budget and the script will figure out - depending on your budget - how often you can buy 0.001 BTC from Kraken.
-3. More sat-stacking by automatically transfering your BTC to Block.Fi and earning interest there.
+2. More sat-stacking by automatically transfering your BTC to Block.Fi and earning interest there.
 
 My intention is for the list above to be optional so you can still run the script in "basic" mode.
 
